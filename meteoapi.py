@@ -29,7 +29,7 @@ print(df.head())  # check the first rows of the dataframe
 
 # ----- exporting data the PostgreSQL database ------
 
-engine = create_engine('postgresql://username:password@localhost:5432/weather_data')  # replace with your actual database credentials
+engine = create_engine('postgresql://username:password@localhost:5432/Weather and Energy Database')  # replace with your actual database credentials
 df.to_sql('historic_weather_data', con=engine, if_exists='append', index=False)
 
 print("Data exported to PostgreSQL database successfully.")
