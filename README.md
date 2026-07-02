@@ -6,4 +6,7 @@
 
 ---
 ## Challenges
- - Using Pandas DataFrames
+ - Learning to use Pandas DataFrames
+ - Exporting DF to postgreSQL
+ - How to actually forecast the weather from the data I've gathered
+ 
