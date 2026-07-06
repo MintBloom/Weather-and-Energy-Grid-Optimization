@@ -9,4 +9,5 @@
  - Learning to use Pandas DataFrames
  - Exporting DF to postgreSQL
  - How to actually forecast the weather from the data I've gathered
+ - What "kind" of database to use for energy
  
