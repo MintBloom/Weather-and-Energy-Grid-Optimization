@@ -24,24 +24,6 @@ def get_historic_weather_data(latitude, longitude, start_date, end_date):
     return dataframe
 
 
-def export_to_postgresql(username, password, host, port, database_name, df, table_name):
-    # exporting data the PostgreSQL database
-
-    # username =   your username 
-    # password =    password created during installation
-    # host =       host name/address
-    # port =       port number
-    # database_name = "Weather and Energy Database" database name
-    # df = dataframe to be exported
-    # table_name = "history_weather_data" # table name you want to use/create
-    
-    engine = create_engine(f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database_name}") 
-    
-    df.to_sql(table_name, con=engine, if_exists="append", index=False)
-
-    print("Data exported to PostgreSQL database successfully.")
-
-
 def read_demand_data_from_csvfile(file_path): # file_path is the path to the CSV file containing demand data
     # ----- reading demand data from a CSV file -----
     
@@ -65,6 +47,24 @@ def read_demand_data_from_csvfile(file_path): # file_path is the path to the CSV
     return energy_demand_dataframes
 
 
+def export_to_postgresql(username, password, host, port, database_name, df, table_name):
+    # exporting data the PostgreSQL database
+
+    # username =   your username 
+    # password =    password created during installation
+    # host =       host name/address
+    # port =       port number
+    # database_name = "Weather and Energy Database" database name
+    # df = dataframe to be exported
+    # table_name = "history_weather_data" # table name you want to use/create
+    
+    engine = create_engine(f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database_name}") 
+    
+    df.to_sql(table_name, con=engine, if_exists="append", index=False)
+
+    print("Data exported to PostgreSQL database successfully.")
+
+
 def combine_demand_dataframes(list_of_dataframes):
     
     final_table  = pd.concat(list_of_dataframes) # concatenate all the dataframes in the list into a single dataframe
@@ -75,9 +75,9 @@ def combine_demand_dataframes(list_of_dataframes):
     
 
 if __name__ == "__main__":
-    historic_weather_df = get_historic_weather_data(51.5085, -0.1257, "2020-01-01", "2026-06-16")
-    export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", historic_weather_df, "history_weather_data")
+    historic_weather_df = get_historic_weather_data(51.5085, -0.1257, "2020-01-01", "2026-06-16") # fetch weather data and assemble into dataframe
+    export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", historic_weather_df, "history_weather_data") # export dataframe to sql database
 
-    energy_demand_df = read_demand_data_from_csvfile("C:\\Code\\Github\\Weather-and-Energy-Grid-Optimization\\energy demand data")
-    combined_demand_df = combine_demand_dataframes(energy_demand_df)
-    export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", combined_demand_df, "energy_demand_data")
+    energy_demand_df = read_demand_data_from_csvfile("C:\\Code\\Github\\Weather-and-Energy-Grid-Optimization\\energy demand data") # read energy data from csv and assemble into dataframe
+    combined_demand_df = combine_demand_dataframes(energy_demand_df) # concatenate all the dataframes into one dataframe
+    export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", combined_demand_df, "energy_demand_data") # export dataframe to sql database
