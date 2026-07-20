@@ -42,7 +42,6 @@ def read_demand_data_from_csvfile(file_path): # file_path is the path to the CSV
             print(df.head())  # check the first rows of the dataframe
             print(df.isnull().sum())  # check for missing values
             energy_demand_dataframes.append(df) # adding the new dataframe to the list of dataframes
-            print("####################################################################################")
     
     return energy_demand_dataframes
 
@@ -68,6 +67,10 @@ def export_to_postgresql(username, password, host, port, database_name, df, tabl
 def combine_demand_dataframes(list_of_dataframes):
     
     final_table  = pd.concat(list_of_dataframes) # concatenate all the dataframes in the list into a single dataframe
+    final_table = final_table[final_table["SETTLEMENT_PERIOD"] <= 48] # filter out any edge cases where the period is greater than 48 due to changing of clocks (DST)
+    final_table = final_table.drop_duplicates(subset= ["datetime"]) # drop any duplicate rows which appear due to the changing of clocks
+    final_table = final_table.sort_values("datetime").reset_index(drop=True) # sort the dataframe by the datetime column (chronologically)
+
     print(final_table.head()) 
     print(final_table.shape) 
     print(final_table["SETTLEMENT_DATE"].min(), final_table["SETTLEMENT_DATE"].max())  # check the minimum and maximum dates in the dataset
@@ -78,6 +81,6 @@ if __name__ == "__main__":
     historic_weather_df = get_historic_weather_data(51.5085, -0.1257, "2020-01-01", "2026-06-16") # fetch weather data and assemble into dataframe
     export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", historic_weather_df, "history_weather_data") # export dataframe to sql database
 
-    energy_demand_df = read_demand_data_from_csvfile("C:\\Code\\Github\\Weather-and-Energy-Grid-Optimization\\energy demand data") # read energy data from csv and assemble into dataframe
+    energy_demand_df = read_demand_data_from_csvfile(r"C:\Users\Code\Github\Weather-and-Energy-Grid-Optimization\energy-demand-data") # read energy data from csv and assemble into dataframe, substitute with your own file path
     combined_demand_df = combine_demand_dataframes(energy_demand_df) # concatenate all the dataframes into one dataframe
     export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", combined_demand_df, "energy_demand_data") # export dataframe to sql database
