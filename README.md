@@ -15,5 +15,8 @@
 
  - what time increments/frequency to use for analysis (hourly, daily, etc..)
     going with at least hourly data, but will briefly look at weather and energy data first. Based on how detailed the trends and spikes in each set are, I will switch both to either hourly or half-hourly
+
  - where to analyse and plot graphs of my data
     jupyter notebooks?
+ - strange peaks appearing in certain years when they shouldn't be
+   NESO themselves (source of energy csv's) was using different data types and formats for the SETTLEMENT_DATES column in there demanddata tables. Becuase of this, pandas was misparsing the dates depending on the year and format it was being given - this ultimately ended up scrambling some of the rows in the tables it was converting. to fix this I went into excel before using pandas, and changed the data type and format of tthe SETTLEMENT_DATES column to the same type (short date) for each year.
