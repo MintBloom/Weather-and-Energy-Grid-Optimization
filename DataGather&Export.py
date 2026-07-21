@@ -24,6 +24,7 @@ def get_historic_weather_data(latitude, longitude, start_date, end_date):
     return dataframe
 
 
+
 def read_demand_data_from_csvfile(file_path): # file_path is the path to the CSV file containing demand data
     # ----- reading demand data from a CSV file -----
     
@@ -32,18 +33,36 @@ def read_demand_data_from_csvfile(file_path): # file_path is the path to the CSV
     for entry in obj:
         if entry.is_file() and entry.name.endswith('.csv'):
             print(entry.name)
-            file = pd.read_csv(file_path + "\\" + entry.name)
+            file = pd.read_csv(file_path + "\\" + entry.name, quotechar='"')            
             df = pd.DataFrame(file)
-            df["SETTLEMENT_DATE"] = pd.to_datetime(df["SETTLEMENT_DATE"], format='mixed', dayfirst=True)
-            df["SETTLEMENT_PERIOD"] = pd.to_numeric(df["SETTLEMENT_PERIOD"])
-            df["datetime"] = df["SETTLEMENT_DATE"] + pd.to_timedelta((df["SETTLEMENT_PERIOD"] - 1) * 30, unit="m") # combining the settlement_date and settlement_period columns into a single datetime column
+            df["SETTLEMENT_DATE"] = pd.to_datetime(df["SETTLEMENT_DATE"], format="%d/%m/%Y") # convert the settlement_date column format to datetime
+            df = df.rename(columns={df.columns[2]: "ND"}) # name the third column as ND (National Demand)
+            df["SETTLEMENT_PERIOD"] = pd.to_numeric(df["SETTLEMENT_PERIOD"]) # convert the settlement_period column to numeric
+            
+            df["datetime"] = df["SETTLEMENT_DATE"] + pd.to_timedelta((df["SETTLEMENT_PERIOD"] - 1) * 30, unit="m") # combine settlement_date and settlement_period columns into a single datetime column
+            df_hourly = df.set_index(["SETTLEMENT_DATE", "SETTLEMENT_PERIOD"]) # create a composite key index
+            df_hourly = df[df["SETTLEMENT_PERIOD"] % 2 == 1].copy() # extract hourly data and drop the half-hourly data (this line can be removed if half-hourly data is needed)
+
             print(df.shape)  # show the columns and rows of the dataframe
             print(df.dtypes)  # check the data types of the columns
             print(df.head())  # check the first rows of the dataframe
             print(df.isnull().sum())  # check for missing values
+            df_hourly.to_csv('energy-demand-data\\' + "new_" + entry.name, index=False) # saving the dataframe to a new CSV file in the energy_demand_dataframes folder
             energy_demand_dataframes.append(df) # adding the new dataframe to the list of dataframes
+            print(f"{entry.name} converted to csv")
     
     return energy_demand_dataframes
+
+
+def combine_demand_dataframes(list_of_dataframes):
+    
+    final_df  = pd.concat(list_of_dataframes) # concatenate all the dataframes in the list into a single dataframe
+
+    print(final_df.head()) 
+    print(final_df.shape) 
+    print(final_df["SETTLEMENT_DATE"].min(), final_df["SETTLEMENT_DATE"].max())  # check the minimum and maximum dates in the 
+    final_df.to_csv('energy-demand-data\\' + "concatenated_demand_data.csv", index=False)
+    return final_df
 
 
 def export_to_postgresql(username, password, host, port, database_name, df, table_name):
@@ -62,25 +81,12 @@ def export_to_postgresql(username, password, host, port, database_name, df, tabl
     df.to_sql(table_name, con=engine, if_exists="append", index=False)
 
     print("Data exported to PostgreSQL database successfully.")
-
-
-def combine_demand_dataframes(list_of_dataframes):
-    
-    final_table  = pd.concat(list_of_dataframes) # concatenate all the dataframes in the list into a single dataframe
-    final_table = final_table[final_table["SETTLEMENT_PERIOD"] <= 48] # filter out any edge cases where the period is greater than 48 due to changing of clocks (DST)
-    final_table = final_table.drop_duplicates(subset= ["datetime"]) # drop any duplicate rows which appear due to the changing of clocks
-    final_table = final_table.sort_values("datetime").reset_index(drop=True) # sort the dataframe by the datetime column (chronologically)
-
-    print(final_table.head()) 
-    print(final_table.shape) 
-    print(final_table["SETTLEMENT_DATE"].min(), final_table["SETTLEMENT_DATE"].max())  # check the minimum and maximum dates in the dataset
-    return final_table
     
 
 if __name__ == "__main__":
-    historic_weather_df = get_historic_weather_data(51.5085, -0.1257, "2020-01-01", "2026-06-16") # fetch weather data and assemble into dataframe
+    historic_weather_df = get_historic_weather_data(51.5085, -0.1257, "2020-01-01", "2026-06-30") # fetch weather data and assemble into dataframe
     export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", historic_weather_df, "history_weather_data") # export dataframe to sql database
 
-    energy_demand_df = read_demand_data_from_csvfile(r"C:\Users\Code\Github\Weather-and-Energy-Grid-Optimization\energy-demand-data") # read energy data from csv and assemble into dataframe, substitute with your own file path
+    energy_demand_df = read_demand_data_from_csvfile(r"C:\Users\asteg\Code\Github\Weather-and-Energy-Grid-Optimization\raw-energy-demand-data") # read energy data from csv and assemble into dataframe, substitute with your own file path
     combined_demand_df = combine_demand_dataframes(energy_demand_df) # concatenate all the dataframes into one dataframe
     export_to_postgresql("postgres", "", "localhost", "5432", "Weather and Energy Database", combined_demand_df, "energy_demand_data") # export dataframe to sql database
